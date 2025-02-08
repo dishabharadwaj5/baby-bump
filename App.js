@@ -1,3 +1,5 @@
+//client/src/App.js
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Calendar from "react-calendar";
@@ -5,144 +7,230 @@ import "react-calendar/dist/Calendar.css";
 import "./App.css";
 
 function App() {
-    const [meals, setMeals] = useState([]);
+    const [tasks, setTasks] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [dietPlan, setDietPlan] = useState([]);
-    const [feedback, setFeedback] = useState({});
-    const [newMeal, setNewMeal] = useState(""); // State for new meal input
+    const [newTask, setNewTask] = useState("");
+    const [newTaskStartTime, setNewTaskStartTime] = useState("00:00");
+    const [newTaskEndTime, setNewTaskEndTime] = useState("00:00");
 
     const handleDateClick = (date) => {
         setSelectedDate(date);
     };
 
-    const fetchMeals = async () => {
+    const fetchTasks = async () => {
         try {
-            const formattedDate = selectedDate.toISOString().split("T")[0];
-            const response = await axios.get(`http://localhost:5000/meals?date=${formattedDate}`);
-            setMeals(response.data);
+            const response = await axios.get(
+                `http://localhost:5000/plan?date=${
+                    selectedDate.toISOString().split("T")[0]
+                }`
+            );
+            const tasksData = response.data;
+            setTasks(tasksData);
+
+            // Store tasks in local storage
+            localStorage.setItem("tasks", JSON.stringify(tasksData));
         } catch (error) {
-            console.error("Error fetching meals:", error);
+            console.error("Error fetching tasks:", error);
         }
     };
 
-    const fetchDietPlan = async () => {
-        try {
-            const response = await axios.get("http://localhost:5000/dietPlan");
-            setDietPlan(response.data);
-        } catch (error) {
-            console.error("Error fetching diet plan:", error);
+    const handleAddTask = async () => {
+        if (newTask) {
+            const formattedDate = selectedDate.toISOString()
+                                              .split("T")[0];
+            const startTime = newTaskStartTime;
+            const endTime = newTaskEndTime;
+
+            try {
+                // Add the new task
+                await axios.post("http://localhost:5000/plan", {
+                    date: formattedDate,
+                    todo: newTask,
+                    startTime,
+                    endTime,
+                });
+
+                // Fetch tasks after adding the new task
+                await fetchTasks();
+
+                // Clear the input fields
+                setNewTask("");
+                setNewTaskStartTime("00:00");
+                setNewTaskEndTime("00:00");
+            } catch (error) {
+                console.error("Error adding task:", error);
+            }
         }
     };
 
     useEffect(() => {
-        fetchMeals();
-        fetchDietPlan();
+        fetchTasks();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate]);
 
-    const handleMealConsumed = async (mealId, index) => {
+    const handleDeleteTask = async (taskId) => {
         try {
-            await axios.patch(`http://localhost:5000/meals/${mealId}`, { consumed: true });
-            setMeals((prevMeals) => {
-                const updatedMeals = [...prevMeals];
-                updatedMeals[index].consumed = true;
-                return updatedMeals;
+            await axios.delete(`http://localhost:5000/plan/${taskId}`);
+
+            // Update state by removing the deleted task
+            setTasks((prevTasks) =>
+                prevTasks.filter((task) => task._id !== taskId)
+            );
+        } catch (error) {
+            console.error("Error deleting task:", error);
+        }
+    };
+
+    const handleCompleteTask = async (taskId, taskIndex) => {
+        try {
+            // Send a request to mark the task as completed on the server
+            await axios.patch(`http://localhost:5000/plan/${taskId}`, {
+                completed: true,
+            });
+
+            // Fetch the updated tasks from the server after completion
+            await fetchTasks();
+
+            setTasks((prevTasks) => {
+                const updatedTasks = [...prevTasks];
+                updatedTasks[taskIndex].completed = true;
+                return updatedTasks;
             });
         } catch (error) {
-            console.error("Error updating meal consumption status:", error);
+            console.error("Error marking task as completed:", error);
         }
     };
 
-    const handleFeedbackChange = (mealId, value) => {
-        setFeedback((prevFeedback) => ({
-            ...prevFeedback,
-            [mealId]: value,
-        }));
-    };
-
-    const submitFeedback = async (mealId) => {
-        try {
-            await axios.post(`http://localhost:5000/meals/${mealId}/feedback`, { feedback: feedback[mealId] });
-            alert("Feedback submitted!");
-        } catch (error) {
-            console.error("Error submitting feedback:", error);
+    useEffect(() => {
+        // Retrieve tasks from local storage on component mount
+        const storedTasks = localStorage.getItem("tasks");
+        if (storedTasks) {
+            setTasks(JSON.parse(storedTasks));
+        } else {
+            fetchTasks();
         }
-    };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    const handleAddMeal = async () => {
-        if (!newMeal) return; // Prevent adding empty meals
-        try {
-            const formattedDate = selectedDate.toISOString().split("T")[0];
-            const response = await axios.post(`http://localhost:5000/meals`, {
-                meal: newMeal,
-                date: formattedDate,
-                consumed: false,
-            });
-            setMeals((prevMeals) => [...prevMeals, response.data]);
-            setNewMeal(""); // Clear the input after adding
-        } catch (error) {
-            console.error("Error adding new meal:", error);
-        }
-    };
+    useEffect(() => {
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+    }, [tasks]);
 
     return (
         <div className="App">
             <nav>
-                <div className="logo">Pregnancy Diet Tracker</div>
+                <div className="logo">Doctor Appointments</div>
             </nav>
             <div className="content">
                 <div className="hero-section">
                     <div className="left-part">
                         <div className="calendar-container">
-                            <Calendar onChange={handleDateClick} value={selectedDate} />
+                        <Calendar
+  onChange={handleDateClick}
+  value={selectedDate}
+  tileClassName={({ date, view }) => {
+    if (
+      view === "month" && // Only apply this style in the month view
+      tasks.some(
+        (task) =>
+          task.date === date.toISOString().split("T")[0] && !task.completed
+      )
+    ) {
+      return "pending-task-day"; // Apply the class for days with pending tasks
+    }
+    return null;
+  }}
+/>
+
                         </div>
                     </div>
                     <div className="right-part">
-                        <div className="meals">
-                            <h2>Meals for {selectedDate.toDateString()}</h2>
+                        <div className="tasks">
+                            <h2>Tasks for {selectedDate.toDateString()}</h2>
                             <ul>
-                                {meals.map((meal, index) => (
-                                    <li
-                                        key={meal._id}
-                                        style={{
-                                            backgroundColor: meal.consumed ? "lightgreen" : "lightcoral",
-                                        }}
-                                    >
-                                        <div className="meal-details">
-                                            <span className="meal-text">{meal.meal}</span>
-                                            <button
-                                                className="consume-button"
-                                                onClick={() => handleMealConsumed(meal._id, index)}
-                                            >
-                                                {meal.consumed ? "Undo" : "Consumed"}
-                                            </button>
-                                            <input
-                                                type="text"
-                                                placeholder="Feedback"
-                                                value={feedback[meal._id] || ""}
-                                                onChange={(e) => handleFeedbackChange(meal._id, e.target.value)}
-                                            />
-                                            <button onClick={() => submitFeedback(meal._id)}>Submit Feedback</button>
-                                        </div>
-                                    </li>
-                                ))}
+                                {tasks
+                                    .filter(
+                                        (task) =>
+                                            task.date ===
+                                            selectedDate
+                                                .toISOString()
+                                                .split("T")[0]
+                                    )
+                                    .map((task, index) => (
+                                        <li
+                                            key={index}
+                                            style={{
+                                                backgroundColor: task.completed
+                                                    ? "lightgreen"
+                                                    : "lightblue",
+                                            }}
+                                        >
+                                            <div className="task-details">
+                                                <span className="task-text">
+                                                    {task.todo}
+                                                </span>
+                                                {task.startTime &&
+                                                    task.endTime && (
+                                                        <span className="time-range">
+                                                            {task.startTime} -{" "}
+                                                            {task.endTime}
+                                                        </span>
+                                                    )}
+                                                <button
+                                                    className="delete-button"
+                                                    onClick={() =>
+                                                        handleDeleteTask(
+                                                            task._id
+                                                        )
+                                                    }
+                                                >
+                                                    X
+                                                </button>
+                                                {!task.completed && (
+                                                    <button
+                                                        className="complete-button"
+                                                        onClick={() =>
+                                                            handleCompleteTask(
+                                                                task._id,
+                                                                index
+                                                            )
+                                                        }
+                                                    >
+                                                        &#10004;
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </li>
+                                    ))}
                             </ul>
-                            <div className="add-meal">
+                            <div className="add-task">
                                 <input
                                     type="text"
-                                    placeholder="Add a new meal"
-                                    value={newMeal}
-                                    onChange={(e) => setNewMeal(e.target.value)}
+                                    placeholder="Add appointment"
+                                    value={newTask}
+                                    onChange={(e) => setNewTask(e.target.value)}
                                 />
-                                <button onClick={handleAddMeal}>Add Meal</button>
+                                <div className="time-inputs">
+                                    <input
+                                        type="time"
+                                        value={newTaskStartTime}
+                                        onChange={(e) =>
+                                            setNewTaskStartTime(e.target.value)
+                                        }
+                                    />
+                                    <span>-</span>
+                                    <input
+                                        type="time"
+                                        value={newTaskEndTime}
+                                        onChange={(e) =>
+                                            setNewTaskEndTime(e.target.value)
+                                        }
+                                    />
+                                </div>
+                                <button onClick={handleAddTask}>
+                                    Add Task
+                                </button>
                             </div>
-                        </div>
-                        <div className="diet-plan">
-                            <h2>Recommended Diet Plan</h2>
-                            <ul>
-                                {dietPlan.map((item, index) => (
-                                    <li key={index}>{item}</li>
-                                ))}
-                            </ul>
                         </div>
                     </div>
                 </div>
@@ -152,3 +240,4 @@ function App() {
 }
 
 export default App;
+ 
