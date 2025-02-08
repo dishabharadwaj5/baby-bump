@@ -1,0 +1,46 @@
+<!-- progress.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Progress Tracking</title>
+</head>
+<body>
+    <header>
+        <div class="logo">Pregnancy Dashboard</div>
+        <nav>
+            <ul>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="progress.html">Progress Tracking</a></li>
+                <li><a href="meal-planning.html">Meal Planning</a></li>
+                <li><a href="workouts.html">Workout Plans</a></li>
+            </ul>
+        </nav>
+        <div class="user-greeting">Hello, User!</div>
+    </header>
+    <main>
+        <section id="progress">
+            <h2>Progress Tracking</h2>
+            <div class="progress-charts">
+                <div class="chart">
+                    <h4>Weight Gain Chart</h4>
+                    <canvas id="weightChart"></canvas>
+                </div>
+                <div class="chart">
+                    <h4>Exercise Completion</h4>
+                    <canvas id="exerciseChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Pregnancy Dashboard</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
