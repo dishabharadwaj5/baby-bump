@@ -24,6 +24,10 @@ nav {
   font-weight: bold;
 }
 
+.date-time {
+  font-size: 1rem;
+}
+
 .content {
   display: flex;
   justify-content: center;
@@ -66,6 +70,50 @@ nav {
   line-height: 1.125em;
 }
 
+.react-calendar__navigation button {
+  color: #5ba4ff; /* Bright color for navigation */
+  min-width: 44px;
+  background: none;
+  font-size: 1.2rem;
+  margin-top: 0.5em;
+}
+
+.react-calendar_month-viewdays_day--weekend {
+  color: #ff8a80; /* Light red for weekends */
+}
+
+.react-calendar__tile {
+  max-width: 100%;
+  padding: 10px 6.6667px;
+  background: none;
+  text-align: center;
+  line-height: 16px;
+  border-radius: 6px;
+  border: none;
+  position: relative;
+}
+
+.react-calendar__tile--active {
+  background: #5ba4ff; /* Light blue for active date */
+  color: white;
+  border-radius: 6px;
+}
+
+.tasks {
+  margin-top: 1rem;
+  border: 1px solid #444b5a;
+  border-radius: 10px;
+  padding: 1rem;
+  background-color: #333a50;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tasks h2 {
+  font-size: 1.5rem;
+  color: #f7f7f8; /* Match with navigation color */
+  margin-bottom: 1rem;
+}
+
 ul {
   list-style: none;
   padding: 0;
@@ -82,21 +130,37 @@ li {
   background-color: #afbef3; /* Slightly lighter for task items */
 }
 
-.meal-details {
+.task-details {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 1rem;
-  flex-grow: 1;
-  text-align: left;
+  flex-grow:1;
+  text-align:left;
 }
 
-input[type="text"] {
+.time-range {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  color: #090114;
+  align-items: center;
+}
+
+.add-task {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+input[type="text"], input[type="time"] {
   padding: 0.5rem;
   font-size: 1rem;
   border: 1px solid #5ba4ff;
   border-radius: 4px;
-  width: 200px; /* Fixed width for feedback input */
+  width: 100%;
+  background-color: #d9dff7; /* Dark input background */
+  color: #e4e4e4;
 }
 
 button {
@@ -112,4 +176,35 @@ button {
 
 button:hover {
   background-color: #4b8ecc; /* Slightly darker on hover */
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: #3b0202; /* Soft red for delete */
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+  align-self:flex-end;
+}
+
+.complete-button {
+  background: none;
+  border: none;
+  color: #2e4f08; /* Green for complete */
+  cursor: pointer;
+  font-size: 1.2rem;
+  margin-right: 0 rem;
+}
+
+button.delete-button, button.complete-button {
+  align-self: flex-end;
+  margin-left: auto; /* Pushes buttons to the end of the row */
+}
+
+.pending-task-day {
+  background-color: rgb(220, 220, 135); /* Yellow for pending tasks */
+  border-radius: 50%; /* Optional: Make the background circular */
+  color: black; /* Ensure text remains readable */
+  font-weight: bold; /* Make it visually prominent */
 }
