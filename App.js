@@ -1,243 +1,88 @@
-//client/src/App.js
-
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import React, { useState } from "react";
 import "./App.css";
 
+const mealPlans = {
+  vegetarian: [
+    { breakfast: "Oatmeal with banana", lunch: "Quinoa salad", dinner: "Vegetable curry with rice", calories: 1800 },
+    { breakfast: "Greek yogurt with honey", lunch: "Lentil soup", dinner: "Stuffed bell peppers", calories: 1900 },
+    { breakfast: "Smoothie bowl", lunch: "Chickpea stir-fry", dinner: "Paneer tikka with salad", calories: 2000 },
+    { breakfast: "Avocado toast", lunch: "Spinach and ricotta pasta", dinner: "Mushroom risotto", calories: 1950 },
+    { breakfast: "Fruit salad with nuts", lunch: "Tofu stir-fry with rice", dinner: "Dal with roti", calories: 1850 },
+    { breakfast: "Whole wheat pancakes", lunch: "Vegetable biryani", dinner: "Grilled corn with soup", calories: 1900 },
+    { breakfast: "Poha with peanuts", lunch: "Rajma with rice", dinner: "Pumpkin soup with bread", calories: 1950 },
+  ],
+  nonVegetarian: [
+    { breakfast: "Egg sandwich", lunch: "Grilled chicken with veggies", dinner: "Fish curry with rice", calories: 2000 },
+    { breakfast: "Scrambled eggs with toast", lunch: "Beef stew", dinner: "Shrimp stir-fry", calories: 2100 },
+    { breakfast: "Omelet with cheese", lunch: "Chicken salad", dinner: "Baked salmon with quinoa", calories: 2200 },
+    { breakfast: "Yogurt with berries", lunch: "Turkey sandwich", dinner: "Lamb curry with naan", calories: 2150 },
+    { breakfast: "Boiled eggs with toast", lunch: "Grilled fish with mashed potatoes", dinner: "Chicken tikka with rice", calories: 2050 },
+    { breakfast: "Pancakes with eggs", lunch: "BBQ chicken with salad", dinner: "Beef stir-fry with noodles", calories: 2100 },
+    { breakfast: "French toast with eggs", lunch: "Roast chicken with veggies", dinner: "Tuna salad with bread", calories: 2150 },
+  ],
+};
+
+// Function to shuffle meals
+const shuffleArray = (array) => {
+  let shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 function App() {
-    const [tasks, setTasks] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [newTask, setNewTask] = useState("");
-    const [newTaskStartTime, setNewTaskStartTime] = useState("00:00");
-    const [newTaskEndTime, setNewTaskEndTime] = useState("00:00");
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [shuffledMeals, setShuffledMeals] = useState([]);
 
-    const handleDateClick = (date) => {
-        setSelectedDate(date);
-    };
+  const handleSelectPlan = (plan) => {
+    setSelectedPlan(plan);
+    setShuffledMeals(shuffleArray(mealPlans[plan]));
+  };
 
-    const fetchTasks = async () => {
-        try {
-            const response = await axios.get(
-                `http://localhost:5000/plan?date=${
-                    selectedDate.toISOString().split("T")[0]
-                }`
-            );
-            const tasksData = response.data;
-            setTasks(tasksData);
-
-            // Store tasks in local storage
-            localStorage.setItem("tasks", JSON.stringify(tasksData));
-        } catch (error) {
-            console.error("Error fetching tasks:", error);
-        }
-    };
-
-    const handleAddTask = async () => {
-        if (newTask) {
-            const formattedDate = selectedDate.toISOString()
-                                              .split("T")[0];
-            const startTime = newTaskStartTime;
-            const endTime = newTaskEndTime;
-
-            try {
-                // Add the new task
-                await axios.post("http://localhost:5000/plan", {
-                    date: formattedDate,
-                    todo: newTask,
-                    startTime,
-                    endTime,
-                });
-
-                // Fetch tasks after adding the new task
-                await fetchTasks();
-
-                // Clear the input fields
-                setNewTask("");
-                setNewTaskStartTime("00:00");
-                setNewTaskEndTime("00:00");
-            } catch (error) {
-                console.error("Error adding task:", error);
-            }
-        }
-    };
-
-    useEffect(() => {
-        fetchTasks();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate]);
-
-    const handleDeleteTask = async (taskId) => {
-        try {
-            await axios.delete(`http://localhost:5000/plan/${taskId}`);
-
-            // Update state by removing the deleted task
-            setTasks((prevTasks) =>
-                prevTasks.filter((task) => task._id !== taskId)
-            );
-        } catch (error) {
-            console.error("Error deleting task:", error);
-        }
-    };
-
-    const handleCompleteTask = async (taskId, taskIndex) => {
-        try {
-            // Send a request to mark the task as completed on the server
-            await axios.patch(`http://localhost:5000/plan/${taskId}`, {
-                completed: true,
-            });
-
-            // Fetch the updated tasks from the server after completion
-            await fetchTasks();
-
-            setTasks((prevTasks) => {
-                const updatedTasks = [...prevTasks];
-                updatedTasks[taskIndex].completed = true;
-                return updatedTasks;
-            });
-        } catch (error) {
-            console.error("Error marking task as completed:", error);
-        }
-    };
-
-    useEffect(() => {
-        // Retrieve tasks from local storage on component mount
-        const storedTasks = localStorage.getItem("tasks");
-        if (storedTasks) {
-            setTasks(JSON.parse(storedTasks));
-        } else {
-            fetchTasks();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem("tasks", JSON.stringify(tasks));
-    }, [tasks]);
-
-    return (
-        <div className="App">
-            <nav>
-                <div className="logo">Doctor Appointments</div>
-            </nav>
-            <div className="content">
-                <div className="hero-section">
-                    <div className="left-part">
-                        <div className="calendar-container">
-                        <Calendar
-  onChange={handleDateClick}
-  value={selectedDate}
-  tileClassName={({ date, view }) => {
-    if (
-      view === "month" && // Only apply this style in the month view
-      tasks.some(
-        (task) =>
-          task.date === date.toISOString().split("T")[0] && !task.completed
-      )
-    ) {
-      return "pending-task-day"; // Apply the class for days with pending tasks
-    }
-    return null;
-  }}
-/>
-
-                        </div>
-                    </div>
-                    <div className="right-part">
-                        <div className="tasks">
-                            <h2>Tasks for {selectedDate.toDateString()}</h2>
-                            <ul>
-                                {tasks
-                                    .filter(
-                                        (task) =>
-                                            task.date ===
-                                            selectedDate
-                                                .toISOString()
-                                                .split("T")[0]
-                                    )
-                                    .map((task, index) => (
-                                        <li
-                                            key={index}
-                                            style={{
-                                                backgroundColor: task.completed
-                                                    ? "lightgreen"
-                                                    : "lightblue",
-                                            }}
-                                        >
-                                            <div className="task-details">
-                                                <span className="task-text">
-                                                    {task.todo}
-                                                </span>
-                                                {task.startTime &&
-                                                    task.endTime && (
-                                                        <span className="time-range">
-                                                            {task.startTime} -{" "}
-                                                            {task.endTime}
-                                                        </span>
-                                                    )}
-                                                <button
-                                                    className="delete-button"
-                                                    onClick={() =>
-                                                        handleDeleteTask(
-                                                            task._id
-                                                        )
-                                                    }
-                                                >
-                                                    X
-                                                </button>
-                                                {!task.completed && (
-                                                    <button
-                                                        className="complete-button"
-                                                        onClick={() =>
-                                                            handleCompleteTask(
-                                                                task._id,
-                                                                index
-                                                            )
-                                                        }
-                                                    >
-                                                        &#10004;
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </li>
-                                    ))}
-                            </ul>
-                            <div className="add-task">
-                                <input
-                                    type="text"
-                                    placeholder="Add appointment"
-                                    value={newTask}
-                                    onChange={(e) => setNewTask(e.target.value)}
-                                />
-                                <div className="time-inputs">
-                                    <input
-                                        type="time"
-                                        value={newTaskStartTime}
-                                        onChange={(e) =>
-                                            setNewTaskStartTime(e.target.value)
-                                        }
-                                    />
-                                    <span>-</span>
-                                    <input
-                                        type="time"
-                                        value={newTaskEndTime}
-                                        onChange={(e) =>
-                                            setNewTaskEndTime(e.target.value)
-                                        }
-                                    />
-                                </div>
-                                <button onClick={handleAddTask}>
-                                    Add Task
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="app-container">
+      {!selectedPlan ? (
+        <div className="selection-screen">
+          <h1>Select Your Meal Plan</h1>
+          <button className="btn veg-btn" onClick={() => handleSelectPlan("vegetarian")}>
+            Vegetarian
+          </button>
+          <button className="btn nonveg-btn" onClick={() => handleSelectPlan("nonVegetarian")}>
+            Non-Vegetarian
+          </button>
         </div>
-    );
+      ) : (
+        <div className="meal-plan">
+          <h1>{selectedPlan === "vegetarian" ? "Vegetarian" : "Non-Vegetarian"} Meal Plan</h1>
+          <button className="btn back-btn" onClick={() => setSelectedPlan(null)}>Go Back</button>
+          <table className="meal-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Breakfast</th>
+                <th>Lunch</th>
+                <th>Dinner</th>
+                <th>Calories</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shuffledMeals.map((meal, index) => (
+                <tr key={index}>
+                  <td>{["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][index]}</td>
+                  <td>{meal.breakfast}</td>
+                  <td>{meal.lunch}</td>
+                  <td>{meal.dinner}</td>
+                  <td>{meal.calories} kcal</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default App;
- 
